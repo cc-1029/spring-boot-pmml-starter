@@ -17,7 +17,7 @@ import java.util.Map;
 @Data
 @Slf4j
 @Component("testModel")
-public class TestModel extends ModelPredictionTemplate<TestRawData> {
+public class TestModel extends ModelPredictionTemplate<TestRawData, Object> {
 
 //    @Value("${model.test}")
     private String modelPath;
@@ -31,6 +31,11 @@ public class TestModel extends ModelPredictionTemplate<TestRawData> {
     protected Map<String, Object> featureEngineering(TestRawData testRawData) {
         Map<String, Object> featureMap = new HashMap<>();
         return featureMap;
+    }
+
+    @Override
+    protected Object transformOutput(Object object) {
+        return object;
     }
 
 }

@@ -23,19 +23,19 @@ import java.util.stream.Collectors;
  * @date 2022/3/28
  */
 @Slf4j
-public abstract class ModelPredictionTemplate<RawData> {
+public abstract class ModelPredictionTemplate<Input, Output> {
 
     private Evaluator model;
 
     /**
      * 模板方法：基于模型和数据进行预测
      *
-     * @param rawDataList
-     * @return res
+     * @param inputList
+     * @return outputList
      */
-    public List<Object> predict(List<RawData> rawDataList) {
+    public List<Output> predict(List<Input> inputList) {
         // 如果模型入参为空，则直接返回null
-        if (CollectionUtils.isEmpty(rawDataList)) {
+        if (CollectionUtils.isEmpty(inputList)) {
             return null;
         }
         // 第一步：根据模型路径加载模型
@@ -47,7 +47,8 @@ public abstract class ModelPredictionTemplate<RawData> {
         }
         this.model = model;
         // 第二步：将原始数据进行特征工程、加载数据、根据模型预测结果
-        return rawDataList.stream().map(this::featureEngineeringAndPredict).collect(Collectors.toList());
+        return inputList.stream()
+                .map(this::featureEngineeringAndPredict).map(this::transformOutput).collect(Collectors.toList());
     }
 
     /**
@@ -86,8 +87,8 @@ public abstract class ModelPredictionTemplate<RawData> {
     /**
      * 转换特征
      *
-     * @param model
-     * @return model
+     * @param model, featureMap
+     * @return res
      */
     private Map<FieldName, FieldValue> transformFeature(Evaluator model, Map<String, ?> featureMap) {
         // 根据模型获得输入的域
@@ -104,12 +105,12 @@ public abstract class ModelPredictionTemplate<RawData> {
     /**
      * 特征工程后并进行预测
      *
-     * @param rawData
+     * @param input
      * @return object
      */
-    private Object featureEngineeringAndPredict(RawData rawData) {
+    private Object featureEngineeringAndPredict(Input input) {
         // 基于子类实现的特征工程方法进行转换
-        Map<String, ?> featureMap = featureEngineering(rawData);
+        Map<String, ?> featureMap = featureEngineering(input);
         if (featureMap == null || featureMap.size() == 0) {
             return null;
         }
@@ -136,9 +137,17 @@ public abstract class ModelPredictionTemplate<RawData> {
     /**
      * 特征工程，根据原始数据返回特征
      *
-     * @param rawData
+     * @param input
      * @return feature
      */
-    protected abstract Map<String, ?> featureEngineering(RawData rawData);
+    protected abstract Map<String, ?> featureEngineering(Input input);
+
+    /**
+     * 改变输出格式
+     *
+     * @param object
+     * @return output
+     */
+    protected abstract Output transformOutput(Object object);
 
 }
