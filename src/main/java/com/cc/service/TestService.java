@@ -2,6 +2,8 @@ package com.cc.service;
 
 import com.cc.domain.TestRawData;
 
+import java.util.List;
+
 /**
  * Test 服务
  *
@@ -22,5 +24,5 @@ public interface TestService {
      *
      * @return String
      */
-    String modelPredict(TestRawData testRawData);
+    List<String> modelPredict(TestRawData testRawData);
 }

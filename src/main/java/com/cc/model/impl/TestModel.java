@@ -19,7 +19,7 @@ import java.util.Map;
 @Component("testModel")
 public class TestModel extends ModelPredictionTemplate<TestRawData> {
 
-    @Value("${model.test}")
+//    @Value("${model.test}")
     private String modelPath;
 
     @Override

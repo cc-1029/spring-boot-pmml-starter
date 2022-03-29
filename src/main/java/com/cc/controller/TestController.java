@@ -8,6 +8,9 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 /**
  * 测试 Controller
  *
@@ -32,7 +35,8 @@ public class TestController {
     @RequestMapping("/model")
     public String model() {
         TestRawData testRawData = new TestRawData();
-        Double res = Double.parseDouble(testService.modelPredict(testRawData));
+        List<Double> res = testService.modelPredict(testRawData)
+                .stream().map(Double::parseDouble).collect(Collectors.toList());
         return res.toString();
     }
 }

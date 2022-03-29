@@ -8,6 +8,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
 /**
  * Test 服务实现类
  *
@@ -28,9 +32,10 @@ public class TestServiceImpl implements TestService {
     }
 
     @Override
-    public String modelPredict(TestRawData testRawData) {
-        Object predict = testModel.predict(testRawData);
-        log.info("结果为 {}", predict);
-        return predict.toString();
+    public List<String> modelPredict(TestRawData testRawData) {
+        List<TestRawData> testRawDataList = new ArrayList<>();
+        List<Object> objectList = testModel.predict(testRawDataList);
+        log.info("结果为 {}", objectList);
+        return objectList.stream().map(Object::toString).collect(Collectors.toList());
     }
 }

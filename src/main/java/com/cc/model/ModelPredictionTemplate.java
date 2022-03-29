@@ -14,6 +14,7 @@ import java.io.InputStream;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 模板方法设计模式：模型预测的模板类
@@ -24,36 +25,29 @@ import java.util.Map;
 @Slf4j
 public abstract class ModelPredictionTemplate<RawData> {
 
+    private Evaluator model;
+
     /**
      * 模板方法：基于模型和数据进行预测
      *
-     * @param rawData
+     * @param rawDataList
+     * @return res
      */
-    public Object predict(RawData rawData) {
+    public List<Object> predict(List<RawData> rawDataList) {
+        // 如果模型入参为空，则直接返回null
+        if (CollectionUtils.isEmpty(rawDataList)) {
+            return null;
+        }
         // 第一步：根据模型路径加载模型
         String modelPath = getModelPath();
         Evaluator model = loadModelPyPath(modelPath);
-        // 如果模型为空或模型入参为空，则直接返回null
+        // 如果模型为空，则直接返回null
         if (model == null || CollectionUtils.isEmpty(model.getInputFields())) {
             return null;
         }
-        // 第二步：特征工程，将原始数据转换为特征
-        Map<String, Object> featureMap = featureEngineering(rawData);
-        if (featureMap == null || featureMap.size() == 0) {
-            return null;
-        }
-        // 第三步：评估模型得到结果
-        // 根据特征加载数据 确定输入
-        Map<FieldName, FieldValue> arguments = transformFeature(model, featureMap);
-        // 评估模型，得到结果
-        Map<FieldName, ?> results = model.evaluate(arguments);
-        List<TargetField> targetFields = model.getTargetFields();
-        FieldName targetFieldName = targetFields.get(0).getName();
-        Object targetFieldValue = results.get(targetFieldName);
-        if (targetFieldValue instanceof Computable) {
-            return ((Computable) targetFieldValue).getResult();
-        }
-        return null;
+        this.model = model;
+        // 第二步：将原始数据进行特征工程、加载数据、根据模型预测结果
+        return rawDataList.stream().map(this::featureEngineeringAndPredict).collect(Collectors.toList());
     }
 
     /**
@@ -88,13 +82,14 @@ public abstract class ModelPredictionTemplate<RawData> {
             }
         }
     }
+
     /**
      * 转换特征
      *
      * @param model
      * @return model
      */
-    private Map<FieldName, FieldValue> transformFeature(Evaluator model, Map<String, Object> featureMap) {
+    private Map<FieldName, FieldValue> transformFeature(Evaluator model, Map<String, ?> featureMap) {
         // 根据模型获得输入的域
         List<InputField> inputFieldList = model.getInputFields();
         Map<FieldName, FieldValue> arguments = new LinkedHashMap<>();
@@ -106,9 +101,30 @@ public abstract class ModelPredictionTemplate<RawData> {
         }
         return arguments;
     }
-
-
-
+    /**
+     * 特征工程后并进行预测
+     *
+     * @param rawData
+     * @return object
+     */
+    private Object featureEngineeringAndPredict(RawData rawData) {
+        // 基于子类实现的特征工程方法进行转换
+        Map<String, ?> featureMap = featureEngineering(rawData);
+        if (featureMap == null || featureMap.size() == 0) {
+            return null;
+        }
+        // 根据特征加载数据 确定输入
+        Map<FieldName, FieldValue> arguments = transformFeature(model, featureMap);
+        // 评估模型，得到结果
+        Map<FieldName, ?> results = model.evaluate(arguments);
+        List<TargetField> targetFields = model.getTargetFields();
+        FieldName targetFieldName = targetFields.get(0).getName();
+        Object targetFieldValue = results.get(targetFieldName);
+        if (targetFieldValue instanceof Computable) {
+            return ((Computable) targetFieldValue).getResult();
+        }
+        return null;
+    }
 
     /**
      * 返回模型路径，不同模型返回不同路径
@@ -123,6 +139,6 @@ public abstract class ModelPredictionTemplate<RawData> {
      * @param rawData
      * @return feature
      */
-    protected abstract Map<String, Object> featureEngineering(RawData rawData);
+    protected abstract Map<String, ?> featureEngineering(RawData rawData);
 
 }
