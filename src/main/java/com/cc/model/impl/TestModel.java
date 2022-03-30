@@ -34,7 +34,7 @@ public class TestModel extends ModelPredictionTemplate<TestRawData, Object> {
     }
 
     @Override
-    protected Object transformOutput(Object object) {
+    protected Object transformOutput(TestRawData input, Object object) {
         return object;
     }
 

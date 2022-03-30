@@ -11,6 +11,7 @@ import org.xml.sax.SAXException;
 import javax.xml.bind.JAXBException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,8 +48,13 @@ public abstract class ModelPredictionTemplate<Input, Output> {
         }
         this.model = model;
         // 第二步：将原始数据进行特征工程、加载数据、根据模型预测结果
-        return inputList.stream()
-                .map(this::featureEngineeringAndPredict).map(this::transformOutput).collect(Collectors.toList());
+        List<Object> resList = inputList.stream().map(this::featureEngineeringAndPredict).collect(Collectors.toList());
+        List<Output> outputList = new ArrayList<>();
+        for (int i = 0; i < inputList.size(); i++) {
+            Output output = transformOutput(inputList.get(i), resList.get(i));
+            outputList.add(output);
+        }
+        return outputList;
     }
 
     /**
@@ -148,6 +154,6 @@ public abstract class ModelPredictionTemplate<Input, Output> {
      * @param object
      * @return output
      */
-    protected abstract Output transformOutput(Object object);
+    protected abstract Output transformOutput(Input input, Object object);
 
 }
