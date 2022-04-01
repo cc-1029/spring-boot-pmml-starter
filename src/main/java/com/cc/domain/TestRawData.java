@@ -13,4 +13,7 @@ import java.io.Serializable;
 @Data
 public class TestRawData implements Serializable {
     private static final long serialVersionUID = -4802847805388466196L;
+
+    private Double x1;
+    private Double x2;
 }

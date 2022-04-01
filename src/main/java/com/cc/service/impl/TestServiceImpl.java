@@ -34,6 +34,7 @@ public class TestServiceImpl implements TestService {
     @Override
     public List<String> modelPredict(TestRawData testRawData) {
         List<TestRawData> testRawDataList = new ArrayList<>();
+        testRawDataList.add(testRawData);
         List<Object> objectList = testModel.predict(testRawDataList);
         log.info("结果为 {}", objectList);
         return objectList.stream().map(Object::toString).collect(Collectors.toList());

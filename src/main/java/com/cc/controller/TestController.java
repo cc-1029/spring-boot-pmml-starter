@@ -35,6 +35,8 @@ public class TestController {
     @RequestMapping("/model")
     public String model() {
         TestRawData testRawData = new TestRawData();
+        testRawData.setX1(0.30);
+        testRawData.setX2(-0.10);
         List<Double> res = testService.modelPredict(testRawData)
                 .stream().map(Double::parseDouble).collect(Collectors.toList());
         return res.toString();

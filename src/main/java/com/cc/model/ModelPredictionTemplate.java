@@ -1,5 +1,6 @@
 package com.cc.model;
 
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.dmg.pmml.FieldName;
 import org.jpmml.evaluator.*;
@@ -15,7 +16,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * 模板方法设计模式：模型预测的模板类
@@ -23,10 +23,9 @@ import java.util.stream.Collectors;
  * @author caichengjie
  * @date 2022/3/28
  */
+@Data
 @Slf4j
 public abstract class ModelPredictionTemplate<Input, Output> {
-
-    private Evaluator model;
 
     /**
      * 模板方法：基于模型和数据进行预测
@@ -34,24 +33,22 @@ public abstract class ModelPredictionTemplate<Input, Output> {
      * @param inputList
      * @return outputList
      */
-    public List<Output> predict(List<Input> inputList) {
+    public final List<Output> predict(List<Input> inputList) {
         // 如果模型入参为空，则直接返回null
         if (CollectionUtils.isEmpty(inputList)) {
             return null;
         }
-        // 第一步：根据模型路径加载模型
-        String modelPath = getModelPath();
-        Evaluator model = loadModelPyPath(modelPath);
+        // 第一步：加载模型
+        Evaluator model = getModel();
         // 如果模型为空，则直接返回null
         if (model == null || CollectionUtils.isEmpty(model.getInputFields())) {
             return null;
         }
-        this.model = model;
         // 第二步：将原始数据进行特征工程、加载数据、根据模型预测结果
-        List<Object> resList = inputList.stream().map(this::featureEngineeringAndPredict).collect(Collectors.toList());
         List<Output> outputList = new ArrayList<>();
-        for (int i = 0; i < inputList.size(); i++) {
-            Output output = transformOutput(inputList.get(i), resList.get(i));
+        for (Input input: inputList) {
+            Object o = featureEngineeringAndPredict(model, input);
+            Output output = transformOutput(input, o);
             outputList.add(output);
         }
         return outputList;
@@ -63,7 +60,7 @@ public abstract class ModelPredictionTemplate<Input, Output> {
      * @param modelPath
      * @return model
      */
-    private Evaluator loadModelPyPath(String modelPath) {
+    protected Evaluator loadModelPyPath(String modelPath) {
         log.info("loadModelPyPath {}", modelPath);
         InputStream inputStream = null;
         try {
@@ -108,13 +105,14 @@ public abstract class ModelPredictionTemplate<Input, Output> {
         }
         return arguments;
     }
+
     /**
      * 特征工程后并进行预测
      *
      * @param input
      * @return object
      */
-    private Object featureEngineeringAndPredict(Input input) {
+    private Object featureEngineeringAndPredict(Evaluator model, Input input) {
         // 基于子类实现的特征工程方法进行转换
         Map<String, ?> featureMap = featureEngineering(input);
         if (featureMap == null || featureMap.size() == 0) {
@@ -124,13 +122,35 @@ public abstract class ModelPredictionTemplate<Input, Output> {
         Map<FieldName, FieldValue> arguments = transformFeature(model, featureMap);
         // 评估模型，得到结果
         Map<FieldName, ?> results = model.evaluate(arguments);
+        // 默认先处理单输出的模型 TODO 后续考虑加入多输出的处理
         List<TargetField> targetFields = model.getTargetFields();
         FieldName targetFieldName = targetFields.get(0).getName();
         Object targetFieldValue = results.get(targetFieldName);
-        if (targetFieldValue instanceof Computable) {
+        if (isNumber(targetFieldValue)) {
+            return targetFieldValue;
+        }
+        if (isComputable(targetFieldValue)) {
             return ((Computable) targetFieldValue).getResult();
         }
         return null;
+    }
+
+    /**
+     * 判断是不是数字
+     *
+     * @return o
+     */
+    private Boolean isNumber(Object o) {
+        return o instanceof Number;
+    }
+
+    /**
+     * 判断是不是数字
+     *
+     * @return o
+     */
+    private Boolean isComputable(Object o) {
+        return o instanceof Computable;
     }
 
     /**
@@ -138,7 +158,7 @@ public abstract class ModelPredictionTemplate<Input, Output> {
      *
      * @return modelPath
      */
-    protected abstract String getModelPath();
+    protected abstract Evaluator getModel();
 
     /**
      * 特征工程，根据原始数据返回特征
